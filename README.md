@@ -43,12 +43,26 @@ target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
 those CLIs. The Contributor should pause and ask for this when a CLI requires
 interactive trust.
 
+For CLI adversaries, prefer stdout-capture mode: ask the adversary to print its
+review, then let the Contributor write the canonical session file. This avoids
+making every worker responsible for cross-directory file writes.
+
 When invoking Claude CLI non-interactively with `--add-dir`, put `--` before the
 prompt because `--add-dir` accepts multiple directory arguments:
 
 ```sh
 claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
 ```
+
+If Claude should write files directly, also provide a write-capable permission
+mode:
+
+```sh
+claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+```
+
+The `--` separator fixes argument parsing. The permission mode controls whether
+non-interactive file writes can proceed without a prompt.
 
 To check whether installed copies match the repo without writing:
 

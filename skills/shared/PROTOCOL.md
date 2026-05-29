@@ -4,8 +4,11 @@
 
 Run a structured review where one Contributor orchestrates all state and one or
 more Adversaries critique the target. The Contributor owns the session, turn
-order, implementation, verification, and closure. Adversaries write only to
-their assigned files.
+order, implementation, verification, and closure.
+
+Preferred managed mode: Adversaries return their review on stdout and the
+Contributor writes the canonical session files. Direct adversary file writes are
+allowed only when the target CLI has explicit file-write permission configured.
 
 Prefer a fully managed flow: the human starts the review once, then the
 Contributor runs rounds until agreement, pausing only for required tool
@@ -62,7 +65,9 @@ prompts/
 
 Only the Contributor edits `session.yaml`, `contributor.md`,
 `rounds/*-contributor.md`, `implementation-summary.md`, `final.md`, and
-`prompts/*`. Adversaries edit only their assigned subdirectory.
+`prompts/*`. In preferred managed mode, the Contributor also writes adversary
+stdout into the assigned adversary files. In direct-write mode, Adversaries edit
+only their assigned subdirectory.
 
 Directory names use zero-padded IDs plus a lowercase agent slug. The explicit
 `dir` field in `session.yaml` is authoritative when in doubt.
@@ -127,16 +132,28 @@ Statuses:
    review session directory are trusted/allowed in that CLI. If trust must be
    granted interactively, pause at a human gate and ask the human to mark the
    directories trusted before continuing.
+   - Prefer stdout-capture mode for CLI adversaries. Ask the adversary to print
+     the review to stdout, then the Contributor writes the output to the
+     assigned file.
    - For Claude CLI, pass both the target repo and review root with `--add-dir`
      and terminate variadic directory arguments with `--` before the prompt.
-     Example:
+     This fixes argument parsing because `--add-dir` accepts multiple
+     directories. Example:
 
      ```sh
      claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
      ```
 
-     Without `--`, Claude may treat the prompt as another directory or wait on a
-     file-access approval that cannot complete in non-interactive mode.
+   - If Claude is expected to write files directly, add an explicit write-capable
+     permission mode as well:
+
+     ```sh
+     claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+     ```
+
+     Without `--`, Claude may treat the prompt as another directory. Without a
+     write-capable permission mode, Claude may parse the prompt correctly but
+     still wait for write approval that cannot complete in non-interactive mode.
 7. Invoke each adversary with the available CLI/integration. If an agent cannot
    be invoked directly, record it as `blocked` and notify the human only if the
    review cannot continue usefully.
@@ -151,7 +168,9 @@ Statuses:
 12. Write `implementation-summary.md` with changed files, commands run, and
     unresolved risks.
 13. Send each adversary a verification prompt. Each writes
-    `verification-<n>.md` in their directory.
+    `verification-<n>.md` in their directory. Use `<n>` as a sequential
+    verification attempt counter unless the session explicitly chooses a
+    round-based naming convention.
 14. If every adversary verifies with `Agreed`, write `final.md` and set
     `status: closed`. If any adversary disagrees, return to review rounds.
 15. On closure, keep the session directory as an audit artifact. The Contributor
@@ -174,7 +193,9 @@ Act only as the assigned Adversary.
    ```
 
 3. Inspect the target rigorously.
-4. Write only to the assigned round or verification file.
+4. In preferred managed mode, print the review to stdout and do not write files;
+   the Contributor will save it. In direct-write mode, write only to the
+   assigned round or verification file.
 5. End with exactly one verdict line:
    - `Not agreed`
    - `Conditionally agreed`
