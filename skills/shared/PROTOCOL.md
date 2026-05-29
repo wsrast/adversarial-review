@@ -127,6 +127,16 @@ Statuses:
    review session directory are trusted/allowed in that CLI. If trust must be
    granted interactively, pause at a human gate and ask the human to mark the
    directories trusted before continuing.
+   - For Claude CLI, pass both the target repo and review root with `--add-dir`
+     and terminate variadic directory arguments with `--` before the prompt.
+     Example:
+
+     ```sh
+     claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+     ```
+
+     Without `--`, Claude may treat the prompt as another directory or wait on a
+     file-access approval that cannot complete in non-interactive mode.
 7. Invoke each adversary with the available CLI/integration. If an agent cannot
    be invoked directly, record it as `blocked` and notify the human only if the
    review cannot continue usefully.

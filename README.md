@@ -43,6 +43,13 @@ target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
 those CLIs. The Contributor should pause and ask for this when a CLI requires
 interactive trust.
 
+When invoking Claude CLI non-interactively with `--add-dir`, put `--` before the
+prompt because `--add-dir` accepts multiple directory arguments:
+
+```sh
+claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+```
+
 To check whether installed copies match the repo without writing:
 
 ```sh
