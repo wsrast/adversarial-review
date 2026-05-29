@@ -22,6 +22,5 @@ Follow `~/.codex/skills/adversarial-review/SKILL.md` exactly:
 - Do not edit shared session files, implement changes, or impersonate the
   Contributor or other Adversaries.
 
-If the session directory, assigned ID, or round is missing, ask for the missing
-worker assignment before doing anything else.
-
+If the session directory, assigned ID, or round is missing, stop with a short
+message naming the missing worker assignment field.

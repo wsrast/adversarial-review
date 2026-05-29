@@ -6,6 +6,7 @@ wrappers used by Codex, Claude, and Gemini.
 ## Layout
 
 ```text
+skills/shared/PROTOCOL.md
 skills/
   codex/adversarial-review/
   claude/adversarial-review/
@@ -17,6 +18,9 @@ commands/
 scripts/
   install.sh
 ```
+
+The shared protocol is the source of truth for session layout, status values,
+turn order, human gates, implementation, and verification.
 
 Review sessions created by the skill live outside project repos at:
 
@@ -34,8 +38,59 @@ scripts/install.sh
 
 Then restart any CLI/app that caches slash commands or skills.
 
+Before running managed reviews through Claude or Gemini CLI, open/approve the
+target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
+those CLIs. The Contributor should pause and ask for this when a CLI requires
+interactive trust.
+
+To check whether installed copies match the repo without writing:
+
+```sh
+scripts/install.sh --check
+```
+
+The installer creates timestamped `.bak.<timestamp>` backups before overwriting
+changed installed files. Use `--no-backup` only when you intentionally do not
+want backups.
+
+Destination roots can be overridden:
+
+```sh
+CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude GEMINI_HOME=~/.gemini scripts/install.sh
+```
+
+## Agent Surfaces
+
+Codex:
+
+- skill: `~/.codex/skills/adversarial-review/`
+- commands: `~/.codex/commands/adversary.md`,
+  `~/.codex/commands/contributor.md`
+
+Claude:
+
+- skill: `~/.claude/skills/adversarial-review/`
+- commands: `~/.claude/commands/adversary.md`,
+  `~/.claude/commands/contributor.md`
+
+Gemini:
+
+- skill reference files are installed to `~/.gemini/skills/adversarial-review/`
+- command wrappers are installed to `~/.gemini/commands/*.toml`
+- the command wrappers are the reliable entrypoint; the Gemini skill files are
+  installed so prompts and agents can read the same local protocol
+
+## Sessions
+
+Closed sessions are audit artifacts. Archive or delete them only when you no
+longer need the review trail.
+
 ## Rule
 
 Edit this repository first. Treat `~/.codex`, `~/.claude`, and `~/.gemini`
 copies as installed artifacts.
 
+## Sharing
+
+Add a license before publishing this repository outside your own machines or
+organization.
