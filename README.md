@@ -99,6 +99,20 @@ scripts/install.sh
 
 Then restart any CLI/app that caches slash commands or skills.
 
+This installs globally into your user-level agent homes by default. For a
+**project-local install that does not touch `~/`**, pass `--prefix <dir>`:
+
+```sh
+scripts/install.sh --prefix .
+```
+
+That writes each agent's files under `<dir>/.codex`, `<dir>/.claude`,
+`<dir>/.copilot`, and `<dir>/.gemini/config` (and ignores per-agent `*_HOME`
+overrides). How a CLI then discovers a project-local install is CLI-specific —
+e.g. Codex reads `CODEX_HOME`, and Claude/Copilot also auto-discover skills from
+a project's `.claude/` when run there. The review-session location is unaffected
+(see [Running reviews](#running-reviews)).
+
 The installer does not require the agent CLIs to be present — it installs each
 agent's skill/command files unconditionally, so you can install this repo first
 and add a client (e.g. `copilot`, `agy`) later. (Availability is then resolved

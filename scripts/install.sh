@@ -3,14 +3,23 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/install.sh [--check] [--no-backup] [--cleanup]
+Usage: scripts/install.sh [--check] [--no-backup] [--cleanup] [--prefix <dir>]
 
-Installs adversarial-review skills and command wrappers.
+Installs adversarial-review skills and command wrappers. By default this is a
+GLOBAL install into your user-level agent homes (~/.codex, ~/.claude, etc.).
 
 Options:
+  --prefix <dir>    Project-local install: place every agent's files under <dir>
+                    instead of the user-level homes (<dir>/.codex, <dir>/.claude,
+                    <dir>/.copilot, <dir>/.gemini/config) so nothing under ~/ is
+                    touched. Per-agent *_HOME env overrides are ignored when
+                    --prefix is set. Does not change the review-session location
+                    (governed by skills/shared/PROTOCOL.md).
+  --check           Report whether installed copies match the repo; exit non-zero on drift.
+  --no-backup       Do not write .bak.<timestamp> backups before overwriting.
   --cleanup         Clean up and deprecate legacy Gemini configuration files (TOML and skill folders).
 
-Environment overrides:
+Environment overrides (global install only; ignored under --prefix):
   CODEX_HOME        default: $HOME/.codex
   CLAUDE_HOME       default: $HOME/.claude
   COPILOT_HOME      default: $HOME/.copilot (GitHub Copilot CLI personal skills)
@@ -22,6 +31,7 @@ USAGE
 check_only=0
 backup=1
 run_cleanup=0
+prefix=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,6 +43,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --cleanup)
       run_cleanup=1
+      ;;
+    --prefix)
+      shift
+      [[ $# -gt 0 ]] || { echo "--prefix requires a directory argument" >&2; exit 2; }
+      prefix="${1%/}"
+      ;;
+    --prefix=*)
+      prefix="${1#--prefix=}"
+      prefix="${prefix%/}"
       ;;
     -h|--help)
       usage
@@ -53,13 +72,26 @@ source "$repo_dir/adversaries.manifest"
 timestamp="$(date +%Y%m%d-%H%M%S)"
 check_failed=0
 
-# Resolve the Antigravity plugin dir from the manifest (the sole plugin-kind
-# agent). plugin_dir is used by backup routing and the cleanup safety checks.
-# ANTIGRAVITY_HOME default (~/.gemini/config) is nested under ~/.gemini for agy
-# CLI auto-discovery; that default lives in adversaries.manifest.
+# resolve_home <index>: the install home for an adversary.
+# With --prefix, re-root the agent's default home under <prefix> (the part after
+# $HOME/), ignoring per-agent *_HOME env overrides, so a project-local install
+# never touches user-level (~/) settings. Without --prefix, honor the env
+# override or the manifest default (global install).
+resolve_home() {
+  local i="$1"
+  if [[ -n "$prefix" ]]; then
+    printf '%s\n' "$prefix/${adv_home[$i]#"$HOME"/}"
+  else
+    adv_home_resolved "$i"
+  fi
+}
+
+# Resolve the Antigravity plugin dir (the sole plugin-kind agent). plugin_dir is
+# used by backup routing and the cleanup safety checks. ANTIGRAVITY_HOME default
+# (~/.gemini/config) is nested under ~/.gemini for agy CLI auto-discovery.
 antigravity_home="$HOME/.gemini/config"
 for i in "${!adv_slug[@]}"; do
-  [[ "${adv_kind[$i]}" == "plugin" ]] && antigravity_home="$(adv_home_resolved "$i")"
+  [[ "${adv_kind[$i]}" == "plugin" ]] && antigravity_home="$(resolve_home "$i")"
 done
 plugin_dir="$antigravity_home/plugins/adversarial-review-plugin"
 
@@ -267,7 +299,7 @@ fi
 # command wrappers when has_commands); plugin-kind installs the plugin tree.
 for i in "${!adv_slug[@]}"; do
   slug="${adv_slug[$i]}"
-  home="$(adv_home_resolved "$i")"
+  home="$(resolve_home "$i")"
   case "${adv_kind[$i]}" in
     skill)  install_skill "$slug" "$home" ;;
     plugin) install_plugin "$slug" "$home" ;;
@@ -309,7 +341,10 @@ if [[ "$run_cleanup" -eq 1 ]]; then
   fi
 fi
 
-if [[ "$check_only" -eq 0 ]]; then
+# Pre-create the session store for convenience on a global install only — under
+# --prefix we deliberately avoid touching ~/. The session location itself is
+# governed by skills/shared/PROTOCOL.md and is unaffected by --prefix.
+if [[ "$check_only" -eq 0 && -z "$prefix" ]]; then
   mkdir -p "$HOME/.config/reviews"
 fi
 
