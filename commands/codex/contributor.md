@@ -22,11 +22,15 @@ Follow `~/.codex/skills/adversarial-review/SKILL.md` exactly:
   `same-as-contributor`.
 - Keep `session.yaml` as Contributor-owned state. Do not ask adversaries to
   edit it.
-- Wait for every adversary file in each round, then write the Contributor
-  response.
+- Wait for every non-blocked adversary's file in each round, then write the
+  Contributor response.
+- If an adversary fails operationally (token/quota, network, cannot be invoked),
+  drop it automatically and continue with the rest; halt for the human only if
+  no adversary would remain, or the session opts into human-gated failures (see
+  PROTOCOL.md).
 - Implement only after agreement and required human/tool approvals.
 - Request adversary verification after implementation.
-- Close only after every adversary verifies with `Agreed`.
+- Close only after every non-blocked adversary verifies with `Agreed`.
 
 Ask a clarifying question only if the target is missing or the intended review
 cannot be inferred safely.

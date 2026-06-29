@@ -102,6 +102,10 @@ contributor:
   status: "active"
 human_gates:
   implementation_requires_approval: true
+  # Optional. Default false: an adversary that fails operationally is dropped
+  # automatically (see Adversary Failure Handling). Set true only if the user
+  # asks for a human in the loop on adversary drop-outs.
+  adversary_failure_requires_approval: false
 ```
 
 Statuses:
@@ -115,7 +119,8 @@ Statuses:
 - `implemented`
 - `verifying`
 - `closed`
-- `blocked`
+- `blocked` (per-adversary: dropped after an operational failure; session-level:
+  halted for the human because no working adversary remains)
 
 ## Contributor Workflow
 
@@ -201,15 +206,20 @@ Statuses:
       pass an explicit `--allow-tool` allowlist — so a review cannot write or push.
       As with every CLI adversary, sanity-check that the captured stdout is an
       actual review ending in a verdict line.
-7. Invoke each adversary with the available CLI/integration. If an agent cannot
-   be invoked directly, record it as `blocked` and notify the human only if the
-   review cannot continue usefully.
-8. Wait for all adversary files for the round. Treat a missing final verdict
-   line as an incomplete response.
+7. Invoke each adversary with the available CLI/integration. If an adversary
+   fails operationally (cannot be invoked, errors out, exhausts its token/credit
+   quota, or hits a network/timeout failure), drop it automatically per
+   "Adversary Failure Handling": mark that adversary `blocked` with a reason and
+   continue with the remaining non-blocked adversaries. Do not pause unless an
+   exception in that section applies.
+8. Wait for the round's adversary files from all non-blocked adversaries. Treat a
+   missing or non-unique final verdict line, or output that is not a review of
+   the target, as an incomplete response — re-invoke once if cheap, otherwise
+   drop that adversary as an operational failure (do not count it as a verdict).
 9. Write the Contributor response in `rounds/round-N-contributor.md`, accepting,
    rejecting, or modifying each concern with concrete next changes.
-10. Continue Adversary -> Contributor rounds until all adversaries end a round
-   with `Agreed`, or until a blocker requires human judgment.
+10. Continue Adversary -> Contributor rounds until all non-blocked adversaries
+   end a round with `Agreed`, or until a blocker requires human judgment.
 11. When agreement is reached, implement the agreed changes unless the session
     requires human approval first.
 12. Write `implementation-summary.md` with changed files, commands run, and
@@ -218,11 +228,47 @@ Statuses:
     `verification-<n>.md` in their directory. Use `<n>` as a sequential
     verification attempt counter unless the session explicitly chooses a
     round-based naming convention.
-14. If every adversary verifies with `Agreed`, write `final.md` and set
-    `status: closed`. If any adversary disagrees, return to review rounds.
+14. If every non-blocked adversary verifies with `Agreed`, write `final.md`
+    (recording any blocked/dropped adversaries and why) and set `status: closed`.
+    If any disagrees, return to review rounds. If every adversary ended up
+    blocked, do not close: set the session `status: blocked` and halt for the
+    human — a review with no working adversary validates nothing.
 15. On closure, keep the session directory as an audit artifact. The Contributor
     may suggest archiving old sessions, but should not delete them without user
     instruction.
+
+## Adversary Failure Handling
+
+Distinguish an *operational failure* from a *review verdict*. An operational
+failure is when an adversary cannot produce a valid review: it cannot be
+invoked, errors out, exhausts its token/credit quota, hits a network/timeout
+failure (after the CLI's own retries), or returns an incomplete response — no
+single valid verdict line, or output that is not a review of the target. A
+verdict (`Agreed`, `Conditionally agreed`, `Not agreed`) is a substantive
+position and is NEVER treated as a failure.
+
+Default behavior — auto-drop, unattended-safe. When an adversary fails
+operationally, the Contributor drops it automatically and keeps going: set that
+adversary's `status: blocked` with a `blocked_reason`, and continue the round
+with the remaining non-blocked adversaries. Do NOT pause the review for an
+operational failure. A dropped adversary is excluded from round-completion and
+closure checks unless it is later re-invoked successfully. The rationale is that
+an unattended review should not stall on one adversary's token snafu or network
+blip while other adversaries can still do the job.
+
+Two exceptions require halting for the human instead of auto-dropping:
+
+1. No adversary would remain. If dropping this adversary would leave zero
+   non-blocked adversaries, do not proceed: set the session `status: blocked`,
+   notify the human, and wait. This is the one case where a failure halts the
+   review, because nothing could validate the change.
+2. The session opts into human-gated failures. If the user asked for a human in
+   the loop on adversary failures, set
+   `human_gates.adversary_failure_requires_approval: true`; then pause at a human
+   gate before dropping ANY adversary, regardless of how many would remain.
+
+Record every drop in `final.md` so the audit trail shows which adversaries
+participated and which were blocked, and why.
 
 ## Adversary Workflow
 
@@ -280,6 +326,13 @@ Do not ask for routine approvals during ordinary review rounds. Pause only for:
 - CLI workspace trust or file-access approval for target/review directories
 - applying agreed changes when `implementation_requires_approval` is true
 - product/design judgment the agents cannot resolve
+- an adversary failure that hits an exception in "Adversary Failure Handling"
+  (no non-blocked adversary would remain, or
+  `adversary_failure_requires_approval` is true)
+
+An adversary's operational failure is NOT a pause by default — drop it and
+continue per "Adversary Failure Handling". Only the two exceptions above turn a
+failure into a human gate.
 
 When a phone/thread notification capability is available, notify the human at
 human gates with a short summary, the proposed action, and the exact approval
@@ -293,4 +346,6 @@ do not stage ignored review artifacts, and do not run destructive commands
 without explicit approval.
 
 After implementation, verification is mandatory. Closure requires every
-Adversary to verify the implemented changes with `Agreed`.
+non-blocked Adversary to verify the implemented changes with `Agreed`. If every
+adversary has been dropped, halt for the human instead of closing (see Adversary
+Failure Handling).
