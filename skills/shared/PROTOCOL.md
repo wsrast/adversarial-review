@@ -81,7 +81,7 @@ target: "infra-plan/tsconfig-strategy.md"
 status: "registering"
 round: 1
 created_by: "Codex"
-review_dir: "/Users/wesleyrastjc/dev/ao/reviews/20260529-1530-tsconfig-strategy"
+review_dir: "~/dev/ao/reviews/20260529-1530-tsconfig-strategy"
 adversaries:
   - id: 1
     agent: "Claude"
