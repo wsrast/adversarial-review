@@ -4,6 +4,46 @@
 Source of truth for the global `adversarial-review` skills and slash-command wrappers. Supported agents: Codex, Claude, Copilot, Antigravity.
 <!-- END GENERATED: roster-blurb -->
 
+## Why this exists
+
+Most coding harnesses ship a built-in `/review` that asks **the same model that
+wrote the code** to critique it. That has two problems this project is built to
+avoid.
+
+**1. An agent should not review its own work.** LLMs systematically favor their
+own outputs when acting as judge — a measured effect variously called
+*self-enhancement bias* ([Zheng et al., 2023](https://arxiv.org/abs/2306.05685))
+and *self-preference bias*, which is amplified by the fact that models can
+recognize their own generations ([Panickssery et al., 2024](https://arxiv.org/abs/2404.13076)).
+Conversely, having *multiple, independent* models critique and debate a result
+measurably improves factuality and reasoning and reduces hallucinations
+([Du et al., 2023](https://arxiv.org/abs/2305.14325)). This tool enforces that
+structurally: the Contributor (the agent orchestrating the change) is always
+excluded from its own adversary panel, and review is delegated to **different
+vendors' models** (Codex, Claude, Copilot, Antigravity). Diversity catches
+failure modes a single model — or a harness grading its own homework — misses.
+
+**2. It runs on your subscriptions, not metered API tokens.** Because the
+Contributor *shells out to each agent's own CLI* (`claude`, `codex`, `copilot`,
+`agy`), every review round runs on whatever plan that CLI is already signed in
+to — a flat-rate Pro/Max/Team subscription or a Copilot seat — instead of
+per-token API billing. A multi-round, multi-agent adversarial review adds no
+API spend.
+
+**Further benefits over a built-in `/review`:**
+
+- **Adversarial and structured, not a one-shot comment dump.** Skeptical
+  senior-peer review with explicit verdicts (`Not agreed` / `Conditionally
+  agreed` / `Agreed`), Contributor rebuttals, rounds that continue until
+  agreement, and a **mandatory verification round after implementation**.
+- **Durable audit trail.** Every prompt, round, verdict, and final decision is
+  persisted under `~/.config/reviews/<session>/` for later inspection.
+- **Unattended-safe.** Operational failures (token/quota, network) auto-drop the
+  affected adversary and continue; it only halts for a human when no reviewer
+  remains, or when you opt in to a human gate.
+- **Vendor-agnostic and extensible.** Adding a new agent is one row in
+  `adversaries.manifest`; the same protocol drives every CLI.
+
 ## Layout
 
 ```text
