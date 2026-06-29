@@ -1,6 +1,6 @@
 ---
 description: Orchestrate a contributor-managed adversarial review session.
-argument-hint: <target> [with Codex, Antigravity]
+argument-hint: <target> [with Codex, Antigravity, Copilot]
 ---
 
 Invoke the `adversarial-review` skill and act as the **Contributor

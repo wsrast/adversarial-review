@@ -13,6 +13,7 @@ Options:
 Environment overrides:
   CODEX_HOME        default: $HOME/.codex
   CLAUDE_HOME       default: $HOME/.claude
+  COPILOT_HOME      default: $HOME/.copilot (GitHub Copilot CLI personal skills)
   ANTIGRAVITY_HOME  default: $HOME/.gemini/config (coupled under .gemini for agy CLI auto-discovery)
   GEMINI_HOME       default: $HOME/.gemini (used for legacy cleanup)
 USAGE
@@ -49,6 +50,7 @@ done
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 codex_home="${CODEX_HOME:-$HOME/.codex}"
 claude_home="${CLAUDE_HOME:-$HOME/.claude}"
+copilot_home="${COPILOT_HOME:-$HOME/.copilot}"
 antigravity_home="${ANTIGRAVITY_HOME:-$HOME/.gemini/config}"
 
 # Default ANTIGRAVITY_HOME is nested under ~/.gemini for compatibility with agy CLI discovery.
@@ -232,6 +234,10 @@ install_file "$repo_dir/commands/codex/contributor.md" "$codex_home/commands/con
 install_skill claude "$claude_home"
 install_file "$repo_dir/commands/claude/adversary.md" "$claude_home/commands/adversary.md"
 install_file "$repo_dir/commands/claude/contributor.md" "$claude_home/commands/contributor.md"
+
+# GitHub Copilot CLI discovers SKILL.md files from ~/.copilot/skills/ (personal).
+# Copilot exposes only built-in slash commands, so there are no command wrappers.
+install_skill copilot "$copilot_home"
 
 # Antigravity (using agy CLI) is installed inside its global plugin directory structure
 install_file "$repo_dir/skills/antigravity/plugin.json" "$plugin_dir/plugin.json"

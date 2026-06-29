@@ -1,6 +1,6 @@
 # Adversarial Review Skill
 
-Source of truth for the global `adversarial-review` skills (used by Codex, Claude, and Antigravity) and slash-command wrappers (used by Codex and Claude).
+Source of truth for the global `adversarial-review` skills (used by Codex, Claude, Antigravity, and GitHub Copilot) and slash-command wrappers (used by Codex and Claude).
 
 ## Layout
 
@@ -9,6 +9,7 @@ skills/shared/PROTOCOL.md
 skills/
   codex/adversarial-review/
   claude/adversarial-review/
+  copilot/adversarial-review/
   antigravity/
     plugin.json
     skills/
@@ -80,7 +81,7 @@ want backups.
 Destination roots and legacy folders can be overridden:
 
 ```sh
-CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude ANTIGRAVITY_HOME=~/.gemini/config GEMINI_HOME=~/.gemini scripts/install.sh
+CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude COPILOT_HOME=~/.copilot ANTIGRAVITY_HOME=~/.gemini/config GEMINI_HOME=~/.gemini scripts/install.sh
 ```
 
 Specify `GEMINI_HOME` (defaulting to `~/.gemini`) to locate legacy Gemini installations for cleanups and deprecation.
@@ -98,6 +99,15 @@ Claude:
 - skill: `~/.claude/skills/adversarial-review/`
 - commands: `~/.claude/commands/adversary.md`,
   `~/.claude/commands/contributor.md`
+
+GitHub Copilot (using copilot CLI):
+
+- skill: `~/.copilot/skills/adversarial-review/`
+- Copilot discovers personal `SKILL.md` files from `~/.copilot/skills/`. It has
+  no user-defined slash-command wrappers (only built-in commands like `/skills`),
+  so there are no command files to install.
+- Invoke as a CLI adversary with
+  `copilot -p "prompt" -s --allow-all-tools --add-dir <target> --add-dir ~/dev/ao/reviews`.
 
 Antigravity (using agy CLI):
 
@@ -120,5 +130,4 @@ copies as installed artifacts.
 
 ## Sharing
 
-Add a license before publishing this repository outside your own machines or
-organization.
+This repository is published under the MIT license (see `LICENSE`).

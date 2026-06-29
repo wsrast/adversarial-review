@@ -178,6 +178,29 @@ Statuses:
      ```sh
      agy --print-timeout=20m --add-dir=/path/to/target --add-dir="$HOME/dev/ao/reviews" -p "prompt" < /dev/null
      ```
+    - For GitHub Copilot CLI (`copilot`), run with `-p`/`--prompt` for
+      non-interactive execution and pass `--allow-all-tools` — it is **required**
+      for non-interactive mode so the agent's read/shell tools run without a
+      confirmation prompt (otherwise it blocks). Grant file access to the target
+      and review roots with `--add-dir <dir>` (repeatable; space form is fine).
+      Add `-s`/`--silent` so stdout contains only the agent response (no progress
+      lines or stats), which is what the Contributor captures. Verified against
+      `GitHub Copilot CLI 1.0.65`. Example:
+
+     ```sh
+     copilot -p "prompt" -s --allow-all-tools --add-dir /path/to/target --add-dir "$HOME/dev/ao/reviews"
+     ```
+
+      `--allow-all-tools` permits shell execution — the same kind of escalation
+      as Claude's `acceptEdits` or `agy --dangerously-skip-permissions`, and it
+      falls under the "CLI workspace trust or file-access approval" human gate
+      above: only use it within already-trusted target and review directories.
+      Keep the adversary prompt read-only (review, do not modify). Where the
+      installed `copilot` supports it, narrow the grant instead of allowing
+      everything — e.g. deny mutating tools (`--deny-tool 'shell(git push)'`) or
+      pass an explicit `--allow-tool` allowlist — so a review cannot write or push.
+      As with every CLI adversary, sanity-check that the captured stdout is an
+      actual review ending in a verdict line.
 7. Invoke each adversary with the available CLI/integration. If an agent cannot
    be invoked directly, record it as `blocked` and notify the human only if the
    review cannot continue usefully.
