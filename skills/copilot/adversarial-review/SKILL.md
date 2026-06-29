@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: Run a contributor-managed adversarial review using dedicated session directories under ~/dev/ao/reviews. Use when the user invokes /contributor or /adversary, asks Copilot to participate in a Codex/Claude/Antigravity/Copilot adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
+description: Run a contributor-managed adversarial review using dedicated session directories under ~/dev/ao/reviews. Use when the user invokes /contributor or /adversary, asks Copilot to participate in a multi-agent adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
 ---
 
 # Adversarial Review
@@ -14,7 +14,7 @@ repository, the same protocol lives at `skills/shared/PROTOCOL.md`.
 ## Copilot Runtime Rule
 
 When Copilot is the Contributor, do not invoke the Copilot CLI as an Adversary.
-Use non-Copilot adversaries such as Claude, Codex, and Antigravity. If the user
+Use non-Copilot adversaries (any other available agent; see Supported Agents). If the user
 names Copilot as an adversary in a Copilot-led session, skip it in
 `session.yaml` with reason `same-as-contributor`.
 

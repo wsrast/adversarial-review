@@ -124,6 +124,23 @@ Statuses:
 - `blocked` (per-adversary: dropped after an operational failure; session-level:
   halted for the human because no working adversary remains)
 
+## Supported Agents
+
+The roster below is generated from `adversaries.manifest` by `scripts/generate.sh`.
+To add an adversary, add one manifest row, author its invocation block in this
+file, then run `scripts/generate.sh` and `scripts/install.sh`.
+
+<!-- BEGIN GENERATED: agent-cli-map -->
+
+| Agent | CLI binary | Install kind |
+| --- | --- | --- |
+| Codex | `codex` | skill |
+| Claude | `claude` | skill |
+| Copilot | `copilot` | skill |
+| Antigravity | `agy` | plugin |
+
+<!-- END GENERATED: agent-cli-map -->
+
 ## Contributor Workflow
 
 1. Use a goal/autonomous-continuation workflow when available so the human does
@@ -136,8 +153,7 @@ Statuses:
    assigning IDs. Then check availability **at review time, not install time** —
    a client may be added after the repo was installed, and each review should
    pick that up with no reinstall. Probe each candidate's CLI when the review
-   starts (`command -v <cli>`); the agent→CLI map is Codex → `codex`,
-   Claude → `claude`, Antigravity → `agy`, GitHub Copilot → `copilot`.
+   starts (`command -v <cli>`); see the agent→CLI map under "Supported Agents".
    - If a candidate's CLI is absent, record it under `skipped_adversaries` with
      reason `not-installed` and do not assign it an ID. If the user explicitly
      named that adversary, surface the `not-installed` skip in your summary

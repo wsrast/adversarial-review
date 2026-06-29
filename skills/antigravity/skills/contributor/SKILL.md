@@ -14,7 +14,7 @@ Follow the 'adversarial-review' skill in this plugin and read `references/PROTOC
 - Assign adversary IDs, create per-agent directories, and write prompts under
   `prompts/`.
 - Invoke intended adversaries through available CLIs/integrations. Default to
-  Claude, Codex, and Copilot when no adversaries are named and available.
+  the other available adversaries when none are named (see Supported Agents).
 - Do not invoke Antigravity as an Adversary when Antigravity is the
   Contributor. If Antigravity is named as an adversary, skip it with reason
   `same-as-contributor`.
@@ -35,5 +35,5 @@ cannot be inferred safely.
 
 ## Arguments
 
-The user will invoke this skill with the argument: `<target> [with <adversaries>]`.
+The user will invoke this skill with the argument: `<target> [with Codex, Claude, Copilot]`.
 Parse the target and any optional comma-separated adversaries from the prompt text, then use them to orchestrate the review.

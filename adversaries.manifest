@@ -1,0 +1,54 @@
+# adversaries.manifest — single source of truth for the adversary roster.
+#
+# Sourced by scripts/install.sh and scripts/generate.sh. Bash 3.2 compatible:
+# indexed parallel arrays only (NO associative arrays / no bash-4 features).
+#
+#   register_adversary <slug> <display> <cli> <home_env> <home_default> <install_kind> <has_commands>
+#     slug          lowercase id; directory name under skills/ and commands/
+#     display       human name (double-quote if it ever contains spaces)
+#     cli           binary probed with `command -v` at review time
+#     home_env      env var that overrides the install home
+#     home_default  default install home; DOUBLE-QUOTE it so $HOME expands when
+#                   this file is sourced (no eval, no literal-$HOME trap)
+#     install_kind  skill | plugin
+#     has_commands  yes | no  (does this agent get commands/<slug>/ wrappers)
+#
+# To add an adversary: add one row below, author its invocation block in
+# skills/shared/PROTOCOL.md, then run scripts/generate.sh and scripts/install.sh.
+
+if [ -z "${ADVERSARIES_MANIFEST_SOURCED:-}" ]; then
+  ADVERSARIES_MANIFEST_SOURCED=1
+  adv_slug=(); adv_name=(); adv_cli=(); adv_env=(); adv_home=(); adv_kind=(); adv_cmds=()
+  register_adversary() {
+    adv_slug+=("$1"); adv_name+=("$2"); adv_cli+=("$3"); adv_env+=("$4")
+    adv_home+=("$5"); adv_kind+=("$6"); adv_cmds+=("$7")
+  }
+
+  #                  slug          display       cli      home_env          home_default            kind    cmds
+  register_adversary codex       "Codex"       codex   CODEX_HOME       "$HOME/.codex"         skill   yes
+  register_adversary claude      "Claude"      claude  CLAUDE_HOME      "$HOME/.claude"        skill   yes
+  register_adversary copilot     "Copilot"     copilot COPILOT_HOME     "$HOME/.copilot"       skill   no
+  register_adversary antigravity "Antigravity" agy     ANTIGRAVITY_HOME "$HOME/.gemini/config" plugin  no
+fi
+
+# adv_count -> number of registered adversaries
+adv_count() { printf '%s\n' "${#adv_slug[@]}"; }
+
+# adv_home_resolved <index> -> resolved install home (env override or default).
+# Uses indirect expansion; verified on /bin/bash 3.2.57. No eval.
+adv_home_resolved() {
+  local i="$1" env_name
+  env_name="${adv_env[$i]}"
+  printf '%s\n' "${!env_name:-${adv_home[$i]}}"
+}
+
+# adv_others_display <slug> -> comma-joined display names of every OTHER
+# adversary, in manifest order (used to generate "[with X, Y, Z]" rosters).
+adv_others_display() {
+  local self="$1" i out=""
+  for i in "${!adv_slug[@]}"; do
+    [ "${adv_slug[$i]}" = "$self" ] && continue
+    if [ -z "$out" ]; then out="${adv_name[$i]}"; else out="$out, ${adv_name[$i]}"; fi
+  done
+  printf '%s\n' "$out"
+}

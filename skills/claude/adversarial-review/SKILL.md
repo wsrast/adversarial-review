@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: Run a contributor-managed adversarial review using dedicated session directories under ~/dev/ao/reviews. Use when the user invokes /contributor or /adversary, asks Claude to participate in a Codex/Antigravity/Copilot/Claude adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
+description: Run a contributor-managed adversarial review using dedicated session directories under ~/dev/ao/reviews. Use when the user invokes /contributor or /adversary, asks Claude to participate in a multi-agent adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
 ---
 
 # Adversarial Review
@@ -19,7 +19,7 @@ user names Claude as an adversary in a Claude-led session, skip it in
 
 ## Entry Points
 
-- `/contributor <target> [with Codex, Antigravity, Copilot]`: act as the Contributor and
+- `/contributor <target> [with Codex, Copilot, Antigravity]`: act as the Contributor and
   orchestrate the review.
 - `/adversary <session-dir> <assigned-id> <round-or-verification>`: act only as
   the assigned Adversary worker.

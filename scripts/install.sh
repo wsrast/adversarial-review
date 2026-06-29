@@ -48,14 +48,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-codex_home="${CODEX_HOME:-$HOME/.codex}"
-claude_home="${CLAUDE_HOME:-$HOME/.claude}"
-copilot_home="${COPILOT_HOME:-$HOME/.copilot}"
-antigravity_home="${ANTIGRAVITY_HOME:-$HOME/.gemini/config}"
-
-# Default ANTIGRAVITY_HOME is nested under ~/.gemini for compatibility with agy CLI discovery.
-plugin_dir="$antigravity_home/plugins/adversarial-review-plugin"
+# shellcheck source=/dev/null
+source "$repo_dir/adversaries.manifest"
 timestamp="$(date +%Y%m%d-%H%M%S)"
+check_failed=0
+
+# Resolve the Antigravity plugin dir from the manifest (the sole plugin-kind
+# agent). plugin_dir is used by backup routing and the cleanup safety checks.
+# ANTIGRAVITY_HOME default (~/.gemini/config) is nested under ~/.gemini for agy
+# CLI auto-discovery; that default lives in adversaries.manifest.
+antigravity_home="$HOME/.gemini/config"
+for i in "${!adv_slug[@]}"; do
+  [[ "${adv_kind[$i]}" == "plugin" ]] && antigravity_home="$(adv_home_resolved "$i")"
+done
+plugin_dir="$antigravity_home/plugins/adversarial-review-plugin"
 
 canonicalize() {
   local path="$1"
@@ -138,6 +144,7 @@ install_file() {
       echo "OK $dst"
     else
       echo "DIFF $dst"
+      check_failed=1
       if [[ -f "$dst" ]]; then
         diff -u "$dst" "$src" || true
       else
@@ -165,6 +172,26 @@ install_skill() {
 
   install_file "$skill_src/SKILL.md" "$skill_dst/SKILL.md"
   install_file "$repo_dir/skills/shared/PROTOCOL.md" "$skill_dst/references/PROTOCOL.md"
+}
+
+# install_plugin <slug> <home>: install a plugin-kind agent. Loops the plugin's
+# skills directory (skills/<slug>/skills/*) instead of a hardcoded file list, so
+# adding a plugin skill needs no installer edit.
+install_plugin() {
+  local slug="$1"
+  local home_dir="$2"
+  local pdir="$home_dir/plugins/adversarial-review-plugin"
+  local skdir name
+
+  install_file "$repo_dir/skills/$slug/plugin.json" "$pdir/plugin.json"
+  for skdir in "$repo_dir/skills/$slug/skills"/*/; do
+    [[ -d "$skdir" ]] || continue
+    name="$(basename "$skdir")"
+    install_file "$skdir/SKILL.md" "$pdir/skills/$name/SKILL.md"
+    install_file "$repo_dir/skills/shared/PROTOCOL.md" "$pdir/skills/$name/references/PROTOCOL.md"
+  done
+  # Remove legacy plugin commands if present (older pre-release structures).
+  delete_file_or_dir "$pdir/commands"
 }
 
 is_safe_to_delete() {
@@ -226,30 +253,35 @@ delete_file_or_dir() {
   echo "Deleted $target"
 }
 
-install_skill codex "$codex_home"
-install_file "$repo_dir/skills/codex/adversarial-review/agents/openai.yaml" "$codex_home/skills/adversarial-review/agents/openai.yaml"
-install_file "$repo_dir/commands/codex/adversary.md" "$codex_home/commands/adversary.md"
-install_file "$repo_dir/commands/codex/contributor.md" "$codex_home/commands/contributor.md"
+# Generated, roster-derived files must match the manifest before installing.
+if ! "$repo_dir/scripts/generate.sh" --check; then
+  if [[ "$check_only" -eq 1 ]]; then
+    check_failed=1
+  else
+    echo "Generated files are stale. Run scripts/generate.sh and commit, then re-run." >&2
+    exit 1
+  fi
+fi
 
-install_skill claude "$claude_home"
-install_file "$repo_dir/commands/claude/adversary.md" "$claude_home/commands/adversary.md"
-install_file "$repo_dir/commands/claude/contributor.md" "$claude_home/commands/contributor.md"
-
-# GitHub Copilot CLI discovers SKILL.md files from ~/.copilot/skills/ (personal).
-# Copilot exposes only built-in slash commands, so there are no command wrappers.
-install_skill copilot "$copilot_home"
-
-# Antigravity (using agy CLI) is installed inside its global plugin directory structure
-install_file "$repo_dir/skills/antigravity/plugin.json" "$plugin_dir/plugin.json"
-install_file "$repo_dir/skills/antigravity/skills/adversarial-review/SKILL.md" "$plugin_dir/skills/adversarial-review/SKILL.md"
-install_file "$repo_dir/skills/shared/PROTOCOL.md" "$plugin_dir/skills/adversarial-review/references/PROTOCOL.md"
-install_file "$repo_dir/skills/antigravity/skills/adversary/SKILL.md" "$plugin_dir/skills/adversary/SKILL.md"
-install_file "$repo_dir/skills/shared/PROTOCOL.md" "$plugin_dir/skills/adversary/references/PROTOCOL.md"
-install_file "$repo_dir/skills/antigravity/skills/contributor/SKILL.md" "$plugin_dir/skills/contributor/SKILL.md"
-install_file "$repo_dir/skills/shared/PROTOCOL.md" "$plugin_dir/skills/contributor/references/PROTOCOL.md"
-
-# Clean up legacy plugin commands if they exist (e.g. from older pre-release structures)
-delete_file_or_dir "$plugin_dir/commands"
+# Install every adversary from the manifest. skill-kind installs the skill (+
+# command wrappers when has_commands); plugin-kind installs the plugin tree.
+for i in "${!adv_slug[@]}"; do
+  slug="${adv_slug[$i]}"
+  home="$(adv_home_resolved "$i")"
+  case "${adv_kind[$i]}" in
+    skill)  install_skill "$slug" "$home" ;;
+    plugin) install_plugin "$slug" "$home" ;;
+    *) echo "Unknown install_kind '${adv_kind[$i]}' for $slug" >&2; exit 1 ;;
+  esac
+  if [[ "${adv_cmds[$i]}" == "yes" ]]; then
+    install_file "$repo_dir/commands/$slug/adversary.md" "$home/commands/adversary.md"
+    install_file "$repo_dir/commands/$slug/contributor.md" "$home/commands/contributor.md"
+  fi
+  # Per-slug extras: Codex ships an agent descriptor alongside its skill.
+  if [[ "$slug" == "codex" ]]; then
+    install_file "$repo_dir/skills/codex/adversarial-review/agents/openai.yaml" "$home/skills/adversarial-review/agents/openai.yaml"
+  fi
+done
 
 # Clean up legacy Gemini files if they exist to complete the deprecation (opt-in via --cleanup)
 if [[ "$run_cleanup" -eq 1 ]]; then
@@ -282,7 +314,11 @@ if [[ "$check_only" -eq 0 ]]; then
 fi
 
 if [[ "$check_only" -eq 1 ]]; then
-  echo "Check complete."
+  if [[ "$check_failed" -eq 1 ]]; then
+    echo "Check FAILED: installed copies differ from the repo, or generation drift." >&2
+    exit 1
+  fi
+  echo "Check complete: all installed copies match."
 else
   echo "Installed adversarial-review skills and commands."
 fi

@@ -1,6 +1,8 @@
 # Adversarial Review Skill
 
-Source of truth for the global `adversarial-review` skills (used by Codex, Claude, Antigravity, and GitHub Copilot) and slash-command wrappers (used by Codex and Claude).
+<!-- BEGIN GENERATED: roster-blurb -->
+Source of truth for the global `adversarial-review` skills and slash-command wrappers. Supported agents: Codex, Claude, Copilot, Antigravity.
+<!-- END GENERATED: roster-blurb -->
 
 ## Layout
 
