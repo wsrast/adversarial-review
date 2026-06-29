@@ -7,6 +7,7 @@ Source of truth for the global `adversarial-review` skills and slash-command wra
 ## Layout
 
 ```text
+adversaries.manifest        # single source of truth for the adversary roster
 skills/shared/PROTOCOL.md
 skills/
   codex/adversarial-review/
@@ -22,11 +23,31 @@ commands/
   codex/
   claude/
 scripts/
+  generate.sh               # regenerates roster-derived content from the manifest
   install.sh
 ```
 
 The shared protocol is the source of truth for session layout, status values,
 turn order, human gates, implementation, and verification.
+
+## Adding an adversary
+
+The adversary roster lives in one place: `adversaries.manifest` (a
+bash-sourceable registry of slug, CLI binary, install home, install kind, and
+whether it has command wrappers). Roster-derived content — the `[with …]` lists
+in skills/commands, the README blurb above, and the agent→CLI table in
+`PROTOCOL.md` — is generated from it.
+
+To add an adversary:
+
+1. Add one row to `adversaries.manifest`.
+2. Author its non-interactive invocation block in `skills/shared/PROTOCOL.md`.
+3. Run `scripts/generate.sh` (regenerates the roster-derived files), then
+   `scripts/install.sh`.
+
+`scripts/generate.sh --check` exits non-zero if any generated file has drifted
+from the manifest (use it in CI / a pre-commit hook); `scripts/install.sh` runs
+that check first and refuses to install stale generated files.
 
 Review sessions created by the skill live outside project repos at:
 
