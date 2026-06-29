@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Contributor-orchestrated multi-agent review sessions under ~/dev/ao/reviews/.",
   "author": {
-    "name": "Wesley Rast"
+    "name": "wsrast"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": [
     "review",
     "adversary",
