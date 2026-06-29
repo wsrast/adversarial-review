@@ -10,7 +10,7 @@ $ARGUMENTS
 
 Follow `~/.claude/skills/adversarial-review/SKILL.md` exactly:
 
-- Create or continue a review session under `~/dev/ao/reviews/<session>/`.
+- Create or continue a review session under `~/.config/reviews/<session>/`.
 - Use autonomous continuation/goal mode when available so the human does not
   need to relay every round.
 - Assign adversary IDs, create per-agent directories, and write prompts under

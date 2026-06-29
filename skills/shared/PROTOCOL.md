@@ -31,13 +31,13 @@ adversary, record it as skipped with reason `same-as-contributor`.
 Never place review artifacts beside project files. Store sessions under:
 
 ```text
-~/dev/ao/reviews/
+~/.config/reviews/
 ```
 
 Create one subdirectory per review:
 
 ```text
-~/dev/ao/reviews/YYYYMMDD-HHMM-<target-slug>/
+~/.config/reviews/YYYYMMDD-HHMM-<target-slug>/
 ```
 
 Recommended layout:
@@ -81,7 +81,7 @@ target: "infra-plan/tsconfig-strategy.md"
 status: "registering"
 round: 1
 created_by: "Codex"
-review_dir: "~/dev/ao/reviews/20260529-1530-tsconfig-strategy"
+review_dir: "~/.config/reviews/20260529-1530-tsconfig-strategy"
 adversaries:
   - id: 1
     agent: "Claude"
@@ -145,7 +145,7 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
 
 1. Use a goal/autonomous-continuation workflow when available so the human does
    not need to relay every round.
-2. Create the session directory under `~/dev/ao/reviews/`.
+2. Create the session directory under `~/.config/reviews/`.
 3. Write `target.md` with the review target, relevant paths, repo root, and
    scope. For a branch/diff review, include the exact base/head or command used
    to inspect changes.
@@ -177,14 +177,14 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
      directories. Example:
 
      ```sh
-     claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+     claude -p --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
      ```
 
    - If Claude is expected to write files directly, add an explicit write-capable
      permission mode as well:
 
      ```sh
-     claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+     claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
      ```
 
      Without `--`, Claude may treat the prompt as another directory. Without a
@@ -212,7 +212,7 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
       Verified-working example:
 
      ```sh
-     agy --print-timeout=20m --add-dir=/path/to/target --add-dir="$HOME/dev/ao/reviews" -p "prompt" < /dev/null
+     agy --print-timeout=20m --add-dir=/path/to/target --add-dir="$HOME/.config/reviews" -p "prompt" < /dev/null
      ```
     - For GitHub Copilot CLI (`copilot`), run with `-p`/`--prompt` for
       non-interactive execution and pass `--allow-all-tools` — it is **required**
@@ -224,7 +224,7 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
       `GitHub Copilot CLI 1.0.65`. Example:
 
      ```sh
-     copilot -p "prompt" -s --allow-all-tools --add-dir /path/to/target --add-dir "$HOME/dev/ao/reviews"
+     copilot -p "prompt" -s --allow-all-tools --add-dir /path/to/target --add-dir "$HOME/.config/reviews"
      ```
 
       `--allow-all-tools` permits shell execution — the same kind of escalation

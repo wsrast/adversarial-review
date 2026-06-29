@@ -1,7 +1,7 @@
 {
   "name": "adversarial-review-plugin",
   "version": "1.0.0",
-  "description": "Contributor-orchestrated multi-agent review sessions under ~/dev/ao/reviews/.",
+  "description": "Contributor-orchestrated multi-agent review sessions under ~/.config/reviews/.",
   "author": {
     "name": "wsrast"
   },

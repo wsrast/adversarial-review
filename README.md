@@ -52,7 +52,7 @@ that check first and refuses to install stale generated files.
 Review sessions created by the skill live outside project repos at:
 
 ```text
-~/dev/ao/reviews/<session>/
+~/.config/reviews/<session>/
 ```
 
 ## Install
@@ -73,7 +73,7 @@ reinstall. An adversary whose CLI is absent at review time is skipped with reaso
 `not-installed`, and the review proceeds with whoever is available.
 
 Before running managed reviews through Claude or Antigravity CLI, open/approve the
-target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
+target repository and `~/.config/reviews/` as trusted or allowed directories in
 those CLIs. The Contributor should pause and ask for this when a CLI requires
 interactive trust.
 
@@ -85,14 +85,14 @@ When invoking Claude CLI non-interactively with `--add-dir`, put `--` before the
 prompt because `--add-dir` accepts multiple directory arguments:
 
 ```sh
-claude -p --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+claude -p --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
 ```
 
 If Claude should write files directly, also provide a write-capable permission
 mode:
 
 ```sh
-claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/dev/ao/reviews -- "prompt"
+claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
 ```
 
 The `--` separator fixes argument parsing. The permission mode controls whether
@@ -137,7 +137,7 @@ GitHub Copilot (using copilot CLI):
   no user-defined slash-command wrappers (only built-in commands like `/skills`),
   so there are no command files to install.
 - Invoke as a CLI adversary with
-  `copilot -p "prompt" -s --allow-all-tools --add-dir <target> --add-dir ~/dev/ao/reviews`.
+  `copilot -p "prompt" -s --allow-all-tools --add-dir <target> --add-dir ~/.config/reviews`.
 
 Antigravity (using agy CLI):
 

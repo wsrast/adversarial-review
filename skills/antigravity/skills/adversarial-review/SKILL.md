@@ -1,6 +1,6 @@
 ---
 name: adversarial-review
-description: Run a contributor-managed adversarial review using dedicated session directories under ~/dev/ao/reviews. Use when the user invokes /contributor or /adversary, asks Antigravity to participate in a multi-agent adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
+description: Run a contributor-managed adversarial review using dedicated session directories under ~/.config/reviews. Use when the user invokes /contributor or /adversary, asks Antigravity to participate in a multi-agent adversarial review, wants critique of a file, branch, plan, design, implementation, or concept, or wants a structured back-and-forth review with implementation and verification.
 ---
 
 # Adversarial Review

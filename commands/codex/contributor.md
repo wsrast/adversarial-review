@@ -10,7 +10,7 @@ $ARGUMENTS
 
 Follow `~/.codex/skills/adversarial-review/SKILL.md` exactly:
 
-- Create or continue a review session under `~/dev/ao/reviews/<session>/`.
+- Create or continue a review session under `~/.config/reviews/<session>/`.
 - Use a goal/autonomous-continuation workflow when available so the human does
   not need to relay every round.
 - Assign adversary IDs, create per-agent directories, and write prompts under

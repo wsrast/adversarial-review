@@ -310,7 +310,7 @@ if [[ "$run_cleanup" -eq 1 ]]; then
 fi
 
 if [[ "$check_only" -eq 0 ]]; then
-  mkdir -p "$HOME/dev/ao/reviews"
+  mkdir -p "$HOME/.config/reviews"
 fi
 
 if [[ "$check_only" -eq 1 ]]; then
