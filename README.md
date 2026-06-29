@@ -42,6 +42,13 @@ scripts/install.sh
 
 Then restart any CLI/app that caches slash commands or skills.
 
+The installer does not require the agent CLIs to be present — it installs each
+agent's skill/command files unconditionally. Adversary availability is checked
+at review time (not install time), so you can install this repo first and add a
+client (e.g. `copilot`, `agy`) later; the next review picks it up with no
+reinstall. An adversary whose CLI is absent at review time is skipped with reason
+`not-installed`, and the review proceeds with whoever is available.
+
 Before running managed reviews through Claude or Antigravity CLI, open/approve the
 target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
 those CLIs. The Contributor should pause and ask for this when a CLI requires

@@ -96,6 +96,8 @@ adversaries:
 skipped_adversaries:
   - agent: "Codex"
     reason: "same-as-contributor"
+  # reason values: same-as-contributor | not-installed (CLI absent at review
+  # time; a later-added client is picked up on the next review, no reinstall)
 contributor:
   agent: "Codex"
   model: "GPT-5"
@@ -131,7 +133,20 @@ Statuses:
    scope. For a branch/diff review, include the exact base/head or command used
    to inspect changes.
 4. Build the adversary list. Exclude the current Contributor runtime before
-   assigning IDs.
+   assigning IDs. Then check availability **at review time, not install time** —
+   a client may be added after the repo was installed, and each review should
+   pick that up with no reinstall. Probe each candidate's CLI when the review
+   starts (`command -v <cli>`); the agent→CLI map is Codex → `codex`,
+   Claude → `claude`, Antigravity → `agy`, GitHub Copilot → `copilot`.
+   - If a candidate's CLI is absent, record it under `skipped_adversaries` with
+     reason `not-installed` and do not assign it an ID. If the user explicitly
+     named that adversary, surface the `not-installed` skip in your summary
+     rather than silently spinning up a doomed invocation.
+   - An installed CLI that later fails mid-review is a different case — that is a
+     runtime `blocked` drop (step 7 / Adversary Failure Handling), not a skip.
+   - If the probe leaves no available adversaries, halt for the human (see
+     Adversary Failure Handling); a review with no working adversary validates
+     nothing.
 5. Create `session.yaml`, adversary directories, and per-agent prompts.
 6. Before invoking CLI-based adversaries, verify the target repository and
    review session directory are trusted/allowed in that CLI. If trust must be
@@ -240,12 +255,18 @@ Statuses:
 ## Adversary Failure Handling
 
 Distinguish an *operational failure* from a *review verdict*. An operational
-failure is when an adversary cannot produce a valid review: it cannot be
-invoked, errors out, exhausts its token/credit quota, hits a network/timeout
-failure (after the CLI's own retries), or returns an incomplete response — no
-single valid verdict line, or output that is not a review of the target. A
-verdict (`Agreed`, `Conditionally agreed`, `Not agreed`) is a substantive
-position and is NEVER treated as a failure.
+failure is when an adversary cannot produce a valid review: it cannot be invoked
+(including a CLI that is not installed), errors out, exhausts its token/credit
+quota, hits a network/timeout failure (after the CLI's own retries), or returns
+an incomplete response — no single valid verdict line, or output that is not a
+review of the target. A verdict (`Agreed`, `Conditionally agreed`, `Not agreed`)
+is a substantive position and is NEVER treated as a failure.
+
+A not-installed CLI is ideally caught proactively at selection (step 4) and
+recorded as a `skipped_adversaries` entry with reason `not-installed`; a CLI that
+is installed but fails during the review is a runtime `blocked` drop. Both remove
+the adversary from round-completion and closure checks; the difference is only
+when it was detected.
 
 Default behavior — auto-drop, unattended-safe. When an adversary fails
 operationally, the Contributor drops it automatically and keeps going: set that
@@ -258,8 +279,9 @@ blip while other adversaries can still do the job.
 
 Two exceptions require halting for the human instead of auto-dropping:
 
-1. No adversary would remain. If dropping this adversary would leave zero
-   non-blocked adversaries, do not proceed: set the session `status: blocked`,
+1. No adversary would remain. If removing this adversary would leave zero
+   available adversaries (counting both selection-time `not-installed` skips and
+   runtime `blocked` drops), do not proceed: set the session `status: blocked`,
    notify the human, and wait. This is the one case where a failure halts the
    review, because nothing could validate the change.
 2. The session opts into human-gated failures. If the user asked for a human in
