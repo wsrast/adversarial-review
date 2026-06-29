@@ -106,37 +106,9 @@ scripts/install.sh
 Then restart any CLI/app that caches slash commands or skills.
 
 The installer does not require the agent CLIs to be present — it installs each
-agent's skill/command files unconditionally. Adversary availability is checked
-at review time (not install time), so you can install this repo first and add a
-client (e.g. `copilot`, `agy`) later; the next review picks it up with no
-reinstall. An adversary whose CLI is absent at review time is skipped with reason
-`not-installed`, and the review proceeds with whoever is available.
-
-Before running managed reviews through Claude or Antigravity CLI, open/approve the
-target repository and `~/.config/reviews/` as trusted or allowed directories in
-those CLIs. The Contributor should pause and ask for this when a CLI requires
-interactive trust.
-
-For CLI adversaries, prefer stdout-capture mode: ask the adversary to print its
-review, then let the Contributor write the canonical session file. This avoids
-making every worker responsible for cross-directory file writes.
-
-When invoking Claude CLI non-interactively with `--add-dir`, put `--` before the
-prompt because `--add-dir` accepts multiple directory arguments:
-
-```sh
-claude -p --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
-```
-
-If Claude should write files directly, also provide a write-capable permission
-mode:
-
-```sh
-claude -p --permission-mode acceptEdits --add-dir /path/to/target --add-dir ~/.config/reviews -- "prompt"
-```
-
-The `--` separator fixes argument parsing. The permission mode controls whether
-non-interactive file writes can proceed without a prompt.
+agent's skill/command files unconditionally, so you can install this repo first
+and add a client (e.g. `copilot`, `agy`) later. (Availability is then resolved
+at review time, not install time — see [Running reviews](#running-reviews).)
 
 To check whether installed copies match the repo without writing:
 
@@ -155,6 +127,21 @@ CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude COPILOT_HOME=~/.copilot ANTIGRAVITY_HO
 ```
 
 Specify `GEMINI_HOME` (defaulting to `~/.gemini`) to locate legacy Gemini installations for cleanups and deprecation.
+
+## Running reviews
+
+The exact non-interactive invocation for each CLI (`claude`, `codex`, `copilot`,
+`agy`) — flags, argument-ordering quirks, and capture mode — is documented
+authoritatively in `skills/shared/PROTOCOL.md`. That is the single source of
+truth, so it is not duplicated here. Operational notes:
+
+- Before running managed reviews, open/approve the target repository and
+  `~/.config/reviews/` as trusted/allowed directories in each CLI. The
+  Contributor pauses and asks when a CLI requires interactive trust.
+- Prefer stdout-capture mode: the adversary prints its review and the Contributor
+  writes the canonical session file, so no worker needs cross-directory writes.
+- An adversary whose CLI is absent at review time is skipped (`not-installed`)
+  and the review proceeds with whoever is available.
 
 ## Agent Surfaces
 
