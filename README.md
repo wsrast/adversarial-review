@@ -89,12 +89,6 @@ To add an adversary:
 from the manifest (use it in CI / a pre-commit hook); `scripts/install.sh` runs
 that check first and refuses to install stale generated files.
 
-Review sessions created by the skill live outside project repos at:
-
-```text
-~/.config/reviews/<session>/
-```
-
 ## Install
 
 After changing files in this repo, install them to the global agent locations:
@@ -163,8 +157,6 @@ GitHub Copilot (using copilot CLI):
 - Copilot discovers personal `SKILL.md` files from `~/.copilot/skills/`. It has
   no user-defined slash-command wrappers (only built-in commands like `/skills`),
   so there are no command files to install.
-- Invoke as a CLI adversary with
-  `copilot -p "prompt" -s --allow-all-tools --add-dir <target> --add-dir ~/.config/reviews`.
 
 Antigravity (using agy CLI):
 
@@ -177,13 +169,15 @@ Antigravity (using agy CLI):
 
 ## Sessions
 
+Review sessions live outside project repos, under `~/.config/reviews/<session>/`.
 Closed sessions are audit artifacts. Archive or delete them only when you no
 longer need the review trail.
 
 ## Rule
 
-Edit this repository first. Treat `~/.codex`, `~/.claude`, and `~/.gemini/config`
-copies as installed artifacts.
+Edit this repository first. Treat the installed copies under each agent's home
+(`~/.codex`, `~/.claude`, `~/.copilot`, `~/.gemini/config`) as installed
+artifacts — reinstall rather than editing them in place.
 
 ## Sharing
 
