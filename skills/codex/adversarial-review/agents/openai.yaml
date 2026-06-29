@@ -1,4 +1,4 @@
 interface:
   display_name: "Adversarial Review"
   short_description: "Contributor-orchestrated multi-agent review sessions"
-  default_prompt: "Use $adversarial-review to orchestrate a contributor-managed review of this plan with Claude and Gemini."
+  default_prompt: "Use $adversarial-review to orchestrate a contributor-managed review of this plan with Claude and Antigravity."

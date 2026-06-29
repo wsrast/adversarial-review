@@ -51,7 +51,7 @@ adversaries/
     registration.yaml
     round-01.md
     verification-01.md
-  02-gemini/
+  02-antigravity/
     registration.yaml
     round-01.md
 rounds/
@@ -60,7 +60,7 @@ implementation-summary.md
 final.md
 prompts/
   01-claude-round-01.md
-  02-gemini-round-01.md
+  02-antigravity-round-01.md
 ```
 
 Only the Contributor edits `session.yaml`, `contributor.md`,
@@ -89,10 +89,10 @@ adversaries:
     status: "pending"
     dir: "adversaries/01-claude"
   - id: 2
-    agent: "Gemini"
+    agent: "Antigravity"
     model: "unknown"
     status: "pending"
-    dir: "adversaries/02-gemini"
+    dir: "adversaries/02-antigravity"
 skipped_adversaries:
   - agent: "Codex"
     reason: "same-as-contributor"
@@ -154,6 +154,30 @@ Statuses:
      Without `--`, Claude may treat the prompt as another directory. Without a
      write-capable permission mode, Claude may parse the prompt correctly but
      still wait for write approval that cannot complete in non-interactive mode.
+    - For Antigravity CLI (`agy`), run with `-p` or `--print` for non-interactive
+      execution, pass directories via `--add-dir` (repeatable), and redirect stdin
+      from `/dev/null` to prevent blocking. **Flag syntax is strict in `agy` (verified
+      against `agy 1.0.13`) and getting it wrong fails silently — agy exits 0, ignores
+      the prompt, and emits unrelated text instead of the review:**
+      - Pass every value-taking flag in **equals form** (`--add-dir=/path`,
+        `--print-timeout=20m`). Space-separated values (`--add-dir /path`) leak the
+        flag tokens into the prompt and derail the run.
+      - Put `--print-timeout` **before** `-p`/`--print`; after `-p` it is not consumed
+        and corrupts the prompt. (Default timeout is 5m if omitted.)
+      - Put the prompt last as a single trailing positional argument. Do not use `--`.
+      - If direct file-write or automated tool execution is absolutely required,
+        `--dangerously-skip-permissions` can be passed to auto-approve all tool
+        permission requests without prompting; use only as a last resort within
+        already-trusted target and review directories.
+      - Always sanity-check the captured output actually contains a review and a
+        verdict line; a stdout that discusses CLI flags or is unrelated to the target
+        means the invocation was mis-parsed.
+
+      Verified-working example:
+
+     ```sh
+     agy --print-timeout=20m --add-dir=/path/to/target --add-dir="$HOME/dev/ao/reviews" -p "prompt" < /dev/null
+     ```
 7. Invoke each adversary with the available CLI/integration. If an agent cannot
    be invoked directly, record it as `blocked` and notify the human only if the
    review cannot continue usefully.

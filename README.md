@@ -1,7 +1,6 @@
 # Adversarial Review Skill
 
-Source of truth for the global `adversarial-review` skills and slash-command
-wrappers used by Codex, Claude, and Gemini.
+Source of truth for the global `adversarial-review` skills (used by Codex, Claude, and Antigravity) and slash-command wrappers (used by Codex and Claude).
 
 ## Layout
 
@@ -10,11 +9,15 @@ skills/shared/PROTOCOL.md
 skills/
   codex/adversarial-review/
   claude/adversarial-review/
-  gemini/adversarial-review/
+  antigravity/
+    plugin.json
+    skills/
+      adversarial-review/
+      adversary/
+      contributor/
 commands/
   codex/
   claude/
-  gemini/
 scripts/
   install.sh
 ```
@@ -38,7 +41,7 @@ scripts/install.sh
 
 Then restart any CLI/app that caches slash commands or skills.
 
-Before running managed reviews through Claude or Gemini CLI, open/approve the
+Before running managed reviews through Claude or Antigravity CLI, open/approve the
 target repository and `~/dev/ao/reviews/` as trusted or allowed directories in
 those CLIs. The Contributor should pause and ask for this when a CLI requires
 interactive trust.
@@ -74,11 +77,13 @@ The installer creates timestamped `.bak.<timestamp>` backups before overwriting
 changed installed files. Use `--no-backup` only when you intentionally do not
 want backups.
 
-Destination roots can be overridden:
+Destination roots and legacy folders can be overridden:
 
 ```sh
-CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude GEMINI_HOME=~/.gemini scripts/install.sh
+CODEX_HOME=~/.codex CLAUDE_HOME=~/.claude ANTIGRAVITY_HOME=~/.gemini/config GEMINI_HOME=~/.gemini scripts/install.sh
 ```
+
+Specify `GEMINI_HOME` (defaulting to `~/.gemini`) to locate legacy Gemini installations for cleanups and deprecation.
 
 ## Agent Surfaces
 
@@ -94,12 +99,14 @@ Claude:
 - commands: `~/.claude/commands/adversary.md`,
   `~/.claude/commands/contributor.md`
 
-Gemini:
+Antigravity (using agy CLI):
 
-- skill reference files are installed to `~/.gemini/skills/adversarial-review/`
-- command wrappers are installed to `~/.gemini/commands/*.toml`
-- the command wrappers are the reliable entrypoint; the Gemini skill files are
-  installed so prompts and agents can read the same local protocol
+- Plugin is installed under: `~/.gemini/config/plugins/adversarial-review-plugin/`
+- Local plugins placed under `plugins/` are automatically discovered and loaded by `agy` on startup, but will not show in `agy plugin list` (which only lists marketplace-imported/installed plugins).
+- The plugin registers three skills:
+  - `adversarial-review`: `skills/adversarial-review/SKILL.md`
+  - `adversary`: `skills/adversary/SKILL.md` (registers the `adversary` skill capability)
+  - `contributor`: `skills/contributor/SKILL.md` (registers the `contributor` skill capability)
 
 ## Sessions
 
@@ -108,7 +115,7 @@ longer need the review trail.
 
 ## Rule
 
-Edit this repository first. Treat `~/.codex`, `~/.claude`, and `~/.gemini`
+Edit this repository first. Treat `~/.codex`, `~/.claude`, and `~/.gemini/config`
 copies as installed artifacts.
 
 ## Sharing

@@ -1,6 +1,6 @@
 ---
 description: Orchestrate a contributor-managed adversarial review session.
-argument-hint: <target> [with Claude, Gemini]
+argument-hint: <target> [with Claude, Antigravity]
 ---
 
 Invoke the `$adversarial-review` skill and act as the **Contributor
@@ -16,7 +16,7 @@ Follow `~/.codex/skills/adversarial-review/SKILL.md` exactly:
 - Assign adversary IDs, create per-agent directories, and write prompts under
   `prompts/`.
 - Invoke intended adversaries through available CLIs/integrations. Default to
-  Claude and Gemini when no adversaries are named and both are available.
+  Claude and Antigravity when no adversaries are named and both are available.
 - Do not invoke Codex CLI as an Adversary when Codex desktop is the
   Contributor. If Codex is named as an adversary, skip it with reason
   `same-as-contributor`.
