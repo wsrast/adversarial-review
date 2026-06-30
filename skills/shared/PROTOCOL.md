@@ -237,6 +237,18 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
       pass an explicit `--allow-tool` allowlist — so a review cannot write or push.
       As with every CLI adversary, sanity-check that the captured stdout is an
       actual review ending in a verdict line.
+    - For Codex CLI (`codex`), run `codex exec -s read-only -C <target>` for a
+      read-only non-interactive review, pass the prompt as the trailing argument,
+      and capture the final message with `-o <file>`. **Always redirect stdin
+      from `/dev/null`** — `codex exec` also reads stdin (appending it as a
+      `<stdin>` block) and will block indefinitely waiting for EOF when stdin is
+      left open (e.g. in a background/non-interactive run). Add `--add-dir <dir>`
+      for any extra readable roots (e.g. the review session dir). Example:
+
+     ```sh
+     codex exec -s read-only -C /path/to/target --add-dir "$HOME/.config/reviews" \
+       -o out.txt "prompt" < /dev/null
+     ```
 7. Invoke each adversary with the available CLI/integration. If an adversary
    fails operationally (cannot be invoked, errors out, exhausts its token/credit
    quota, or hits a network/timeout failure), drop it automatically per
