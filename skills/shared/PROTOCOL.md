@@ -201,10 +201,12 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
       - Put `--print-timeout` **before** `-p`/`--print`; after `-p` it is not consumed
         and corrupts the prompt. (Default timeout is 5m if omitted.)
       - Put the prompt last as a single trailing positional argument. Do not use `--`.
-      - If direct file-write or automated tool execution is absolutely required,
-        `--dangerously-skip-permissions` can be passed to auto-approve all tool
-        permission requests without prompting; use only as a last resort within
-        already-trusted target and review directories.
+      - For an adversary (read-only) run, do NOT pass `--dangerously-skip-permissions`:
+        agy defaults to denying/awaiting approval for tool actions, so in
+        non-interactive mode unapproved file writes are blocked. `agy` has no
+        native `--read-only`; omitting the dangerous flag IS the read-only posture.
+        Pass `--dangerously-skip-permissions` only for the Contributor's own
+        implementation step, never for an adversary.
       - Always sanity-check the captured output actually contains a review and a
         verdict line; a stdout that discusses CLI flags or is unrelated to the target
         means the invocation was mis-parsed.
@@ -224,19 +226,19 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
       `GitHub Copilot CLI 1.0.65`. Example:
 
      ```sh
-     copilot -p "prompt" -s --allow-all-tools --add-dir /path/to/target --add-dir "$HOME/.config/reviews"
+     copilot -p "prompt" -s --allow-all-tools --deny-tool=write --deny-tool=shell --add-dir /path/to/target --add-dir "$HOME/.config/reviews"
      ```
 
-      `--allow-all-tools` permits shell execution — the same kind of escalation
-      as Claude's `acceptEdits` or `agy --dangerously-skip-permissions`, and it
-      falls under the "CLI workspace trust or file-access approval" human gate
-      above: only use it within already-trusted target and review directories.
-      Keep the adversary prompt read-only (review, do not modify). Where the
-      installed `copilot` supports it, narrow the grant instead of allowing
-      everything — e.g. deny mutating tools (`--deny-tool 'shell(git push)'`) or
-      pass an explicit `--allow-tool` allowlist — so a review cannot write or push.
-      As with every CLI adversary, sanity-check that the captured stdout is an
-      actual review ending in a verdict line.
+      `--allow-all-tools` is required for non-interactive mode, but on its own it
+      grants write + shell capability that a prompt cannot reliably restrain
+      (observed: an adversary wrote a probe file into the target despite a
+      read-only prompt). For an adversary run you **MUST** narrow the grant with
+      `--deny-tool=write --deny-tool=shell` — verified on `copilot 1.0.65` to
+      block file writes and shell execution while preserving read tools, so the
+      review cannot mutate the target. That deny list is the read-only boundary;
+      the read-only prompt instruction is only a secondary layer. As with every
+      CLI adversary, sanity-check that the captured stdout is an actual review
+      ending in a verdict line.
     - For Codex CLI (`codex`), run `codex exec -s read-only -C <target>` for a
       read-only non-interactive review, pass the prompt as the trailing argument,
       and capture the final message with `-o <file>`. **Always redirect stdin
@@ -259,6 +261,13 @@ file, then run `scripts/generate.sh` and `scripts/install.sh`.
    missing or non-unique final verdict line, or output that is not a review of
    the target, as an incomplete response — re-invoke once if cheap, otherwise
    drop that adversary as an operational failure (do not count it as a verdict).
+   Adversaries are read-only by CLI flag (step 6); as a best-effort audit, if the
+   target is a git repo, scan it for stray writes after each adversary
+   (`git -C <target> status --porcelain`, optionally `--ignored`) and capture
+   adversary stderr for permission-denial signals. This audit is detection only —
+   it misses ignored/non-git/outside-repo/`.git`-internal writes — so the
+   read-only flags, not this check, are the actual control; revert/quarantine any
+   stray writes as a protocol violation.
 9. Write the Contributor response in `rounds/round-N-contributor.md`, accepting,
    rejecting, or modifying each concern with concrete next changes.
 10. Continue Adversary -> Contributor rounds until all non-blocked adversaries
@@ -335,10 +344,16 @@ Act only as the assigned Adversary.
    status: "registered"
    ```
 
-3. Inspect the target rigorously.
-4. In preferred managed mode, print the review to stdout and do not write files;
-   the Contributor will save it. In direct-write mode, write only to the
-   assigned round or verification file.
+3. Inspect the target rigorously, **read-only**: read files and run only
+   non-mutating commands (e.g. `git diff`, `git status`). Do not create, modify,
+   move, or delete anything in the target, the repository, or anywhere outside
+   your assigned `adversaries/<id-agent>/` directory.
+4. In preferred managed mode, print the review to stdout and do not write files
+   at all; the Contributor will save it. In direct-write mode, write only to the
+   assigned round or verification file. The read-only posture is enforced at the
+   CLI level (see invocation guidance: Codex `-s read-only`; agy without
+   `--dangerously-skip-permissions`; Copilot `--deny-tool=write --deny-tool=shell`);
+   this instruction is the secondary layer, not the boundary.
 5. End with exactly one verdict line:
    - `Not agreed`
    - `Conditionally agreed`
