@@ -3,23 +3,26 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: scripts/install.sh [--check] [--no-backup] [--cleanup] [--prefix <dir>]
+Usage: scripts/install.sh [--check] [--no-backup] [--cleanup] [--project <dir>]
 
 Installs adversarial-review skills and command wrappers. By default this is a
 GLOBAL install into your user-level agent homes (~/.codex, ~/.claude, etc.).
 
 Options:
-  --prefix <dir>    Project-local install: place every agent's files under <dir>
-                    instead of the user-level homes (<dir>/.codex, <dir>/.claude,
-                    <dir>/.copilot, <dir>/.gemini/config) so nothing under ~/ is
-                    touched. Per-agent *_HOME env overrides are ignored when
-                    --prefix is set. Does not change the review-session location
-                    (governed by skills/shared/PROTOCOL.md).
+  --project <dir>   Project-local install: write the skill into each client's
+                    project-discovery roots under <dir> so nothing under ~/ is
+                    touched. A single neutral skill is placed at
+                    <dir>/.agents/skills/adversarial-review/ (discovered by Codex,
+                    Copilot, and agy) and <dir>/.claude/skills/adversarial-review/
+                    (Claude), plus Claude slash-commands at <dir>/.claude/commands/.
+                    agy discovers .agents/skills only when <dir> is passed via
+                    --add-dir (the review protocol already does this). Does not
+                    change the review-session location (see skills/shared/PROTOCOL.md).
   --check           Report whether installed copies match the repo; exit non-zero on drift.
   --no-backup       Do not write .bak.<timestamp> backups before overwriting.
   --cleanup         Clean up and deprecate legacy Gemini configuration files (TOML and skill folders).
 
-Environment overrides (global install only; ignored under --prefix):
+Environment overrides (global install only; not used under --project):
   CODEX_HOME        default: $HOME/.codex
   CLAUDE_HOME       default: $HOME/.claude
   COPILOT_HOME      default: $HOME/.copilot (GitHub Copilot CLI personal skills)
@@ -31,7 +34,7 @@ USAGE
 check_only=0
 backup=1
 run_cleanup=0
-prefix=""
+project_dir=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -44,14 +47,20 @@ while [[ $# -gt 0 ]]; do
     --cleanup)
       run_cleanup=1
       ;;
-    --prefix)
+    --project)
       shift
-      [[ $# -gt 0 ]] || { echo "--prefix requires a directory argument" >&2; exit 2; }
-      prefix="${1%/}"
+      [[ $# -gt 0 && -n "$1" ]] || { echo "--project requires a non-empty directory argument" >&2; exit 2; }
+      project_dir="${1%/}"
+      [[ -n "$project_dir" ]] || { echo "--project directory cannot be '/'" >&2; exit 2; }
       ;;
-    --prefix=*)
-      prefix="${1#--prefix=}"
-      prefix="${prefix%/}"
+    --project=*)
+      project_dir="${1#--project=}"
+      project_dir="${project_dir%/}"
+      [[ -n "$project_dir" ]] || { echo "--project requires a non-empty directory argument" >&2; exit 2; }
+      ;;
+    --prefix|--prefix=*)
+      echo "--prefix is no longer supported. Use --project <dir> for a project-local install." >&2
+      exit 2
       ;;
     -h|--help)
       usage
@@ -72,18 +81,10 @@ source "$repo_dir/adversaries.manifest"
 timestamp="$(date +%Y%m%d-%H%M%S)"
 check_failed=0
 
-# resolve_home <index>: the install home for an adversary.
-# With --prefix, re-root the agent's default home under <prefix> (the part after
-# $HOME/), ignoring per-agent *_HOME env overrides, so a project-local install
-# never touches user-level (~/) settings. Without --prefix, honor the env
-# override or the manifest default (global install).
+# resolve_home <index>: the global install home for an adversary (env override or
+# manifest default). Project-local installs do not use this — see install_project.
 resolve_home() {
-  local i="$1"
-  if [[ -n "$prefix" ]]; then
-    printf '%s\n' "$prefix/${adv_home[$i]#"$HOME"/}"
-  else
-    adv_home_resolved "$i"
-  fi
+  adv_home_resolved "$1"
 }
 
 # Resolve the Antigravity plugin dir (the sole plugin-kind agent). plugin_dir is
@@ -285,6 +286,52 @@ delete_file_or_dir() {
   echo "Deleted $target"
 }
 
+# install_project <dir>: project-local install into each client's project-
+# discovery roots (reviewed design). One neutral skill serves every client:
+#   <dir>/.agents/skills/adversarial-review/  -> Codex, Copilot, agy
+#                                                (agy discovers it when <dir> is --add-dir'd)
+#   <dir>/.claude/skills/adversarial-review/  -> Claude (Copilot also reads .claude; the
+#                                                resulting duplicate is byte-identical, harmless)
+#   <dir>/.claude/commands/{adversary,contributor}.md -> Claude project slash-commands
+# Not written: .codex/skills (Codex discovers via .agents/skills), .github/skills,
+# Codex command wrappers (Codex commands are built-in/skill-driven), agy plugin layout.
+install_project() {
+  local dir="$1"
+  local neutral="$repo_dir/skills/shared/project/SKILL.md"
+  local proto="$repo_dir/skills/shared/PROTOCOL.md"
+  local root
+  for root in "$dir/.agents/skills/adversarial-review" "$dir/.claude/skills/adversarial-review"; do
+    install_file "$neutral" "$root/SKILL.md"
+    install_file "$proto" "$root/references/PROTOCOL.md"
+  done
+  install_file "$repo_dir/commands/claude/adversary.md" "$dir/.claude/commands/adversary.md"
+  install_file "$repo_dir/commands/claude/contributor.md" "$dir/.claude/commands/contributor.md"
+}
+
+# warn_duplicate_roots <dir>: clients do not merge same-name skills, so a global
+# install competing with this project install can make `$adversarial-review`
+# ambiguous. Warn (never fail) if a global 'adversarial-review' also exists.
+warn_duplicate_roots() {
+  local dir="$1" r found=0
+  local roots=(
+    "$HOME/.codex/skills/adversarial-review"
+    "$HOME/.claude/skills/adversarial-review"
+    "$HOME/.copilot/skills/adversarial-review"
+    "$HOME/.agents/skills/adversarial-review"
+    "$HOME/.gemini/config/plugins/adversarial-review-plugin"
+  )
+  for r in "${roots[@]}"; do
+    if [[ -e "$r" ]]; then
+      [[ "$found" -eq 0 ]] && echo "Warning: a global 'adversarial-review' install also exists and may compete with the project install in '$dir':" >&2
+      echo "  - $r" >&2
+      found=1
+    fi
+  done
+  if [[ "$found" -eq 1 ]]; then
+    echo "  Clients do not merge same-name skills; running an agent in '$dir' may surface both the project and global copies (and make \$adversarial-review ambiguous). Prefer either a global OR a project install for a given agent." >&2
+  fi
+}
+
 # Generated, roster-derived files must match the manifest before installing.
 if ! "$repo_dir/scripts/generate.sh" --check; then
   if [[ "$check_only" -eq 1 ]]; then
@@ -295,6 +342,11 @@ if ! "$repo_dir/scripts/generate.sh" --check; then
   fi
 fi
 
+if [[ -n "$project_dir" ]]; then
+  # Project-local install: one neutral skill into each client's discovery roots.
+  install_project "$project_dir"
+  warn_duplicate_roots "$project_dir"
+else
 # Install every adversary from the manifest. skill-kind installs the skill (+
 # command wrappers when has_commands); plugin-kind installs the plugin tree.
 for i in "${!adv_slug[@]}"; do
@@ -341,11 +393,11 @@ if [[ "$run_cleanup" -eq 1 ]]; then
   fi
 fi
 
-# Pre-create the session store for convenience on a global install only — under
-# --prefix we deliberately avoid touching ~/. The session location itself is
-# governed by skills/shared/PROTOCOL.md and is unaffected by --prefix.
-if [[ "$check_only" -eq 0 && -z "$prefix" ]]; then
+# Pre-create the session store (convenience) for a global install. Project
+# installs never touch ~/; the session location is governed by PROTOCOL.md.
+if [[ "$check_only" -eq 0 ]]; then
   mkdir -p "$HOME/.config/reviews"
+fi
 fi
 
 if [[ "$check_only" -eq 1 ]]; then
